@@ -25,13 +25,11 @@ const state = {
 };
 state.options.dest = state.options.dest || 'outlook';
 
-// Firma del usuario: si trae etiquetas se usa tal cual (HTML); si es texto, se
-// escapa y se respetan los saltos de línea.
+// Firma del usuario: el contenteditable ya devuelve HTML, lo envolvemos con
+// un margen superior para separar del cuerpo del correo.
 function sigToHtml(s) {
   if (!s || !s.trim()) return '';
-  if (/<[a-z][\s\S]*>/i.test(s)) return s;
-  const esc = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  return `<p style="margin:14pt 0 0">${esc.replace(/\n/g, '<br>')}</p>`;
+  return `<div style="margin:14pt 0 0">${s}</div>`;
 }
 function currentOpts() {
   return {
@@ -232,8 +230,18 @@ $('opt-heading').checked = state.options.showPronosticoHeading;
 $('opt-greeting').onchange = (e) => { state.options.greetingAuto = e.target.checked; save(CONFIG.storageKeys.options, state.options); render(); };
 $('opt-heading').onchange = (e) => { state.options.showPronosticoHeading = e.target.checked; save(CONFIG.storageKeys.options, state.options); render(); };
 
-$('signature-input').value = state.signature;
-$('signature-input').addEventListener('input', (e) => { state.signature = e.target.value; save(CONFIG.storageKeys.signature, state.signature); render(); });
+// Signature: contenteditable div that preserves rich HTML from Outlook paste.
+const sigEl = $('signature-input');
+sigEl.innerHTML = state.signature;
+function persistSig() {
+  state.signature = sigEl.innerHTML.replace(/^(<br\s*\/?>\s*)+$/i, '');  // treat only <br> as empty
+  save(CONFIG.storageKeys.signature, state.signature);
+  $('sig-status').textContent = state.signature ? '✓ Firma guardada' : '';
+  render();
+}
+sigEl.addEventListener('input', persistSig);
+$('sig-clear').onclick = () => { sigEl.innerHTML = ''; persistSig(); };
+$('sig-status').textContent = state.signature ? '✓ Firma guardada' : '';
 
 function updateDestUI() {
   const gmail = state.options.dest === 'gmail';
