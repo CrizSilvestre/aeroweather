@@ -11,10 +11,9 @@ export const CONFIG = {
   showPronosticoHeading: false, // true => render a "Pronóstico:" heading above the day blocks
 
   font: { family: 'Arial, sans-serif', size: '12pt' },
-  // Ancho 833 px (igual que la firma). Se mantiene la proporción del original;
-  // maxHeight alto para que mande el ancho en imágenes apaisadas.
-  // PNG = sin pérdida (nítido). `quality` sólo aplica si se vuelve a JPEG.
-  image: { width: 833, maxHeight: 1100, mime: 'image/png', quality: 0.92 },
+  // Ancho por defecto 530 px (= ancho del banner de la firma). El usuario puede
+  // ajustarlo con la ruedita; este es solo el valor inicial.
+  image: { width: 530, maxHeight: 1100, mime: 'image/png', quality: 0.92 },
 
   // ⚠️ Vacío a propósito: la lista REAL de distribución NO se versiona.
   // Opciones para cargarla:

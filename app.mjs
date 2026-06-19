@@ -24,6 +24,7 @@ const state = {
   options: load(CONFIG.storageKeys.options, { greetingAuto: CONFIG.greetingAuto, showPronosticoHeading: CONFIG.showPronosticoHeading }),
 };
 state.options.dest = state.options.dest || 'outlook';
+state.options.imageWidth = state.options.imageWidth || CONFIG.image.width;
 
 // Firma del usuario: el contenteditable ya devuelve HTML, lo envolvemos con
 // un margen superior para separar del cuerpo del correo.
@@ -36,6 +37,8 @@ function currentOpts() {
     greetingAuto: state.options.greetingAuto,
     showPronosticoHeading: state.options.showPronosticoHeading,
     signatureHtml: sigToHtml(state.signature),
+    imageWidth: state.options.imageWidth,
+    bulletsCondiciones: state.options.bulletsCondiciones,
   };
 }
 
@@ -229,6 +232,8 @@ $('opt-greeting').checked = state.options.greetingAuto;
 $('opt-heading').checked = state.options.showPronosticoHeading;
 $('opt-greeting').onchange = (e) => { state.options.greetingAuto = e.target.checked; save(CONFIG.storageKeys.options, state.options); render(); };
 $('opt-heading').onchange = (e) => { state.options.showPronosticoHeading = e.target.checked; save(CONFIG.storageKeys.options, state.options); render(); };
+$('opt-bullets').checked = state.options.bulletsCondiciones;
+$('opt-bullets').onchange = (e) => { state.options.bulletsCondiciones = e.target.checked; save(CONFIG.storageKeys.options, state.options); render(); };
 
 // Signature: contenteditable div that preserves rich HTML from Outlook paste.
 const sigEl = $('signature-input');
@@ -243,6 +248,12 @@ sigEl.addEventListener('input', persistSig);
 $('sig-clear').onclick = () => { sigEl.innerHTML = ''; persistSig(); };
 $('sig-status').textContent = state.signature ? '✓ Firma guardada' : '';
 
+$('img-width').value = state.options.imageWidth;
+$('img-width').addEventListener('input', (e) => {
+  const v = parseInt(e.target.value, 10);
+  if (v >= 100 && v <= 2000) { state.options.imageWidth = v; save(CONFIG.storageKeys.options, state.options); render(); }
+});
+
 function updateDestUI() {
   const gmail = state.options.dest === 'gmail';
   $('generate').textContent = gmail ? 'Copiar correo y abrir Gmail' : 'Generar correo y abrir en Outlook';
@@ -256,6 +267,7 @@ document.querySelectorAll('input[name="dest"]').forEach((r) => {
 });
 
 $('generate').onclick = generate;
+document.getElementById('year').textContent = new Date().getFullYear();
 
 updateDestUI();
 renderBcc();

@@ -50,7 +50,8 @@
             <input type="file" id="file-windy" accept="image/*" hidden />
           </div>
         </div>
-        <div class="hint">Se redimensionan a un ancho estándar. Arrástralas, haz clic, o <b>pégalas con ⌘/Ctrl + V</b> pasando el cursor por la zona.</div>
+        <div class="hint">Arrástralas, haz clic, o <b>pégalas con ⌘/Ctrl + V</b> pasando el cursor por la zona.</div>
+        <label class="imgw">Ancho en el correo (px) — igual a tu firma: <input type="number" id="img-width" min="200" max="1400" step="1" /></label>
       </div>
 
       <div class="card">
@@ -67,6 +68,7 @@
         <h2>Opciones</h2>
         <label><input type="checkbox" id="opt-greeting" /> Saludo automático según la hora (Buenos días / tardes / noches)</label>
         <label><input type="checkbox" id="opt-heading" /> Incluir encabezado “Pronóstico:” antes de los días</label>
+        <label><input type="checkbox" id="opt-bullets" /> Viñetas en Condiciones Generales</label>
       </div>
 
       <div class="card">
@@ -114,6 +116,8 @@
       </div>
     </section>
   </main>
+
+  <footer class="app-footer">© <span id="year">2026</span> CSilvestre · AeroWeather</footer>
 
   <div class="toast" id="toast"></div>
   <script type="module" src="app.mjs"></script>

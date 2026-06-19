@@ -29,16 +29,26 @@ function renderDays(dias, showHeading) {
   return out.join('\n');
 }
 
+function renderCondiciones(lines, bullets) {
+  if (bullets) {
+    const items = lines.map((l) => `<li>${esc(l)}</li>`).join('');
+    return '<p style="margin:0 0 4pt"><strong>CONDICIONES GENERALES:</strong></p>'
+      + `<ul style="margin:0 0 11pt;padding-left:22px">${items}</ul>`;
+  }
+  return `<p style="margin:0 0 11pt"><strong>CONDICIONES GENERALES:</strong><br>${lines.map(esc).join('<br>')}</p>`;
+}
+
 // images: { radar?: {cid}, windy?: {cid} } — only the cid is needed here.
 export function buildEmailHtml(report, images = {}, opts = {}) {
   const cfg = { ...CONFIG, ...opts };
   const s = report.secciones;
   const greeting = cfg.greetingAuto ? autoGreeting(report.meta?.reportTime) : cfg.greeting;
 
-  // Use the image's ACTUAL resized width so the mail client never upscales it
-  // (forcing a fixed width on a smaller image is what made them look blurry).
+  // Display width = signature width (configurable). Cap a large source down to
+  // that target so it matches the signature; never upscale a smaller one (blurs).
   const imgTag = (im, alt) => {
-    const w = im.width || cfg.image.width;
+    const target = cfg.imageWidth || cfg.image.width;
+    const w = Math.min(im.width || target, target);
     return `<p style="margin:0 0 11pt"><img src="cid:${im.cid}" alt="${esc(alt)}" width="${w}" ` +
       `style="width:${w}px;max-width:100%;height:auto;display:block;border:0"></p>`;
   };
@@ -47,7 +57,7 @@ export function buildEmailHtml(report, images = {}, opts = {}) {
     `<p style="margin:0 0 11pt">${esc(greeting)}</p>`,
     `<p style="margin:0 0 11pt">${esc(cfg.intro)}</p>`,
     block('PUNTA CANA Y ÁREAS VECINAS:', esc(s.puntaCana)),
-    block('CONDICIONES GENERALES:', s.condicionesGenerales.map(esc).join('<br>')),
+    renderCondiciones(s.condicionesGenerales, cfg.bulletsCondiciones),
     renderDays(s.pronostico.dias, cfg.showPronosticoHeading),
     block('PRONOSTICO MARINO EXTENDIDO A 3 DÍAS:', esc(s.marino)),
     s.maritimas ? block('CONDICIONES MARÍTIMAS:', esc(s.maritimas)) : '',
