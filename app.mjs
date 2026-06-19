@@ -84,17 +84,36 @@ async function onImage(kind, file) {
 }
 
 // ---- BCC ----------------------------------------------------------------
+const BCC_VISIBLE = 6;
+let bccExpanded = false;
+
 function renderBcc() {
   const wrap = $('bcc-chips'); wrap.innerHTML = '';
+  const total = state.bcc.length;
+  const hidden = total - BCC_VISIBLE;
+  const showAll = bccExpanded || total <= BCC_VISIBLE;
+
   state.bcc.forEach((email, i) => {
     const ok = isEmail(email);
     const chip = document.createElement('span');
     chip.className = 'chip' + (ok ? '' : ' bad');
+    if (!showAll && i >= BCC_VISIBLE) chip.classList.add('chip-hidden');
     chip.innerHTML = `${email} <button title="quitar">×</button>`;
     chip.querySelector('button').onclick = () => { state.bcc.splice(i, 1); persistBcc(); };
     wrap.appendChild(chip);
   });
-  $('tb-bcc').textContent = state.bcc.length;
+
+  // Toggle button "...+N más" / "Ver menos"
+  if (total > BCC_VISIBLE) {
+    const toggle = document.createElement('button');
+    toggle.className = 'chip chip-toggle';
+    toggle.textContent = showAll ? '⇡ Ver menos' : `⋯ +${hidden} más`;
+    toggle.title = showAll ? 'Ocultar correos extra' : `Mostrar ${hidden} correos más`;
+    toggle.onclick = () => { bccExpanded = !bccExpanded; renderBcc(); };
+    wrap.appendChild(toggle);
+  }
+
+  $('tb-bcc').textContent = total;
 }
 function persistBcc() { save(CONFIG.storageKeys.bcc, state.bcc); renderBcc(); render(); }
 function addBcc() {
