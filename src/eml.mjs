@@ -51,8 +51,19 @@ export function buildEml({ subject = 'Weather', to = '', bcc = [], html, images 
   return L.join(CRLF);
 }
 
-// Browser-only: hand the .eml to the OS, which opens it in the default mail client.
-export function downloadEml(eml, filename = 'Weather.eml') {
+// Browser: try the local server's open-eml endpoint first (auto-launches
+// Outlook), fall back to a plain download if the server isn't available.
+export async function downloadEml(eml, filename = 'Weather.eml') {
+  try {
+    const res = await fetch('/api/open-eml', {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: eml,
+    });
+    if (res.ok) return true;           // server opened it in Outlook
+  } catch { /* server not available (GitHub Pages, etc.) */ }
+
+  // Fallback: download the .eml file for the user to open manually.
   const blob = new Blob([eml], { type: 'message/rfc822' });
   const url = URL.createObjectURL(blob);
   const a = Object.assign(document.createElement('a'), { href: url, download: filename });
@@ -60,4 +71,5 @@ export function downloadEml(eml, filename = 'Weather.eml') {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1500);
+  return false;
 }

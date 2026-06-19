@@ -1,9 +1,11 @@
 // Minimal static server (dev/preview only). Serves this folder with correct
 // MIME types — notably .mjs as text/javascript so ES modules load.
 import { createServer } from 'node:http';
-import { readFile, stat } from 'node:fs/promises';
+import { readFile, stat, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, normalize, extname } from 'node:path';
+import { tmpdir } from 'node:os';
+import { execFile } from 'node:child_process';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 4178;
@@ -15,8 +17,29 @@ const MIME = {
   '.map': 'application/json', '.wasm': 'application/wasm', '.ico': 'image/x-icon',
 };
 
+// POST /api/open-eml — saves the .eml to a temp file and opens it with the OS
+// default handler (Outlook on macOS/Windows).  Only works when running locally.
+async function handleOpenEml(req, res) {
+  const chunks = [];
+  for await (const c of req) chunks.push(c);
+  const body = Buffer.concat(chunks).toString('utf8');
+  if (!body) { res.writeHead(400).end('empty body'); return; }
+  const file = join(tmpdir(), `Weather-${Date.now()}.eml`);
+  await writeFile(file, body, 'utf8');
+  const cmd = process.platform === 'win32' ? 'start' : 'open';
+  execFile(cmd, [file], (err) => {
+    if (err) console.error('open failed:', err.message);
+  });
+  res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ ok: true, file }));
+}
+
 createServer(async (req, res) => {
   try {
+    // API routes
+    if (req.method === 'POST' && req.url === '/api/open-eml') {
+      return handleOpenEml(req, res);
+    }
+
     let p = decodeURIComponent(new URL(req.url, 'http://x').pathname);
     if (p === '/' || p === '') p = '/index.html';
     let fp = normalize(join(ROOT, p));

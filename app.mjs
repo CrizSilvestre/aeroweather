@@ -20,9 +20,26 @@ const state = {
   report: null,
   images: { radar: null, windy: null },     // each: { dataUrl, width, height, cid }
   bcc: load(CONFIG.storageKeys.bcc, CONFIG.defaultBcc.slice()),
+  signature: load(CONFIG.storageKeys.signature, ''),
   options: load(CONFIG.storageKeys.options, { greetingAuto: CONFIG.greetingAuto, showPronosticoHeading: CONFIG.showPronosticoHeading }),
 };
 state.options.dest = state.options.dest || 'outlook';
+
+// Firma del usuario: si trae etiquetas se usa tal cual (HTML); si es texto, se
+// escapa y se respetan los saltos de línea.
+function sigToHtml(s) {
+  if (!s || !s.trim()) return '';
+  if (/<[a-z][\s\S]*>/i.test(s)) return s;
+  const esc = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return `<p style="margin:14pt 0 0">${esc.replace(/\n/g, '<br>')}</p>`;
+}
+function currentOpts() {
+  return {
+    greetingAuto: state.options.greetingAuto,
+    showPronosticoHeading: state.options.showPronosticoHeading,
+    signatureHtml: sigToHtml(state.signature),
+  };
+}
 
 function toast(msg) {
   const t = $('toast'); t.textContent = msg; t.classList.add('show');
@@ -88,7 +105,7 @@ function addBcc() {
 
 // ---- preview + validation ----------------------------------------------
 function previewHtml() {
-  const opts = { greetingAuto: state.options.greetingAuto, showPronosticoHeading: state.options.showPronosticoHeading };
+  const opts = currentOpts();
   let html = buildEmailHtml(state.report, { radar: state.images.radar, windy: state.images.windy }, opts);
   // swap cid: refs for inline data URLs so the preview shows the images
   for (const k of ['radar', 'windy']) {
@@ -141,7 +158,7 @@ async function generate() {
   }
 
   // Outlook escritorio: .eml con X-Unsent (borrador con imágenes y CCO).
-  const opts = { greetingAuto: state.options.greetingAuto, showPronosticoHeading: state.options.showPronosticoHeading };
+  const opts = currentOpts();
   const images = [];
   for (const k of ['radar', 'windy']) {
     if (state.images[k]) {
@@ -152,8 +169,10 @@ async function generate() {
   const html = buildEmailHtml(state.report, { radar: state.images.radar, windy: state.images.windy }, opts);
   const eml = buildEml({ subject: CONFIG.subject, bcc, html, images });
   const stamp = state.report.meta.date?.iso || 'reporte';
-  downloadEml(eml, `Weather-${stamp}.eml`);
-  toast('Weather.eml generado · ábrelo para crear el borrador en Outlook');
+  const opened = await downloadEml(eml, `Weather-${stamp}.eml`);
+  toast(opened
+    ? 'Outlook abierto · revisa el borrador y envía'
+    : 'Weather.eml descargado · ábrelo para crear el borrador en Outlook');
 }
 
 // ---- wiring -------------------------------------------------------------
@@ -212,6 +231,9 @@ $('opt-greeting').checked = state.options.greetingAuto;
 $('opt-heading').checked = state.options.showPronosticoHeading;
 $('opt-greeting').onchange = (e) => { state.options.greetingAuto = e.target.checked; save(CONFIG.storageKeys.options, state.options); render(); };
 $('opt-heading').onchange = (e) => { state.options.showPronosticoHeading = e.target.checked; save(CONFIG.storageKeys.options, state.options); render(); };
+
+$('signature-input').value = state.signature;
+$('signature-input').addEventListener('input', (e) => { state.signature = e.target.value; save(CONFIG.storageKeys.signature, state.signature); render(); });
 
 function updateDestUI() {
   const gmail = state.options.dest === 'gmail';
