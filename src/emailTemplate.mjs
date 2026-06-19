@@ -7,7 +7,7 @@ const esc = (s) => String(s ?? '')
 
 function autoGreeting(reportTime) {
   const m = String(reportTime || '').match(/(\d{1,2}):\d{2}\s*([ap])/i);
-  if (!m) return 'Buenos tardes,';
+  if (!m) return 'Buenas tardes,';
   let h = parseInt(m[1], 10) % 12;
   if (/p/i.test(m[2])) h += 12;
   if (h < 12) return 'Buenos días,';
